@@ -1,0 +1,33 @@
+{
+  "name": "amap-toolbox",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -p tsconfig.app.json --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@amap/amap-jsapi-loader": "1.0.1",
+    "gcoord": "1.0.7",
+    "html2canvas": "1.4.1",
+    "lucide-vue-next": "0.468.0",
+    "vue": "3.5.41"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.10",
+    "@vitejs/plugin-vue": "6.0.8",
+    "@vitest/coverage-v8": "4.1.10",
+    "typescript": "6.0.3",
+    "vite": "8.2.1",
+    "vitest": "4.1.10",
+    "vue-tsc": "3.3.9"
+  }
+}
