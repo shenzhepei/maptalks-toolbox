@@ -1,6 +1,6 @@
-import { Image, MapPinned, Shapes } from 'lucide-vue-next'
+import { Image, Layers3, MapPinned, Shapes } from 'lucide-vue-next'
 
-export type FeatureId = 'explore' | 'geojson-studio' | 'gis-export'
+export type FeatureId = 'explore' | 'geojson-studio' | 'layer-lab' | 'gis-export'
 
 export interface ToolboxFeature {
   id: FeatureId
@@ -21,6 +21,12 @@ export const features: ToolboxFeature[] = [
     label: 'GeoJSON studio',
     description: 'Draw points, lines, and polygons, then copy converted GeoJSON.',
     icon: Shapes,
+  },
+  {
+    id: 'layer-lab',
+    label: 'Layer lab',
+    description: 'Load and inspect custom XYZ, WMS, and ArcGIS tile services.',
+    icon: Layers3,
   },
   {
     id: 'gis-export',

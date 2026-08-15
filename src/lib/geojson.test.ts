@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   convertGeoJsonFromGcj02,
+  convertGeoJson,
+  cloneGeoJson,
   parseGeoJson,
   sampleGeoJson,
   type GeoJsonFeatureCollection,
@@ -57,5 +59,13 @@ describe('GeoJSON parsing', () => {
       features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: null } }],
     } as unknown as GeoJsonFeatureCollection
     expect(() => convertGeoJsonFromGcj02(invalid, 'wgs84')).toThrow('coordinates must be arrays')
+  })
+
+  it('converts between declared coordinate systems and clones collections', () => {
+    const wgs84 = convertGeoJson(sampleGeoJson, 'gcj02', 'wgs84')
+    const restored = convertGeoJson(wgs84, 'wgs84', 'gcj02')
+    expect((restored.features[1].geometry.coordinates as GeoJsonPosition)[0]).toBeCloseTo(120.1481, 4)
+    expect(cloneGeoJson(sampleGeoJson)).toEqual(sampleGeoJson)
+    expect(cloneGeoJson(sampleGeoJson)).not.toBe(sampleGeoJson)
   })
 })

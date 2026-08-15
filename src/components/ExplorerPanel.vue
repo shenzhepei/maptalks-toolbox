@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Check, Clipboard, LocateFixed, Search } from 'lucide-vue-next'
-import { convertFromGcj02, formatCoordinate, parseCoordinate } from '../lib/coordinates'
+import { convertCoordinate, formatCoordinate, parseCoordinate, type CoordinateSystem } from '../lib/coordinates'
 import type { MapRuntime, PlaceResult } from '../lib/map-runtime'
 
 const props = defineProps<{ runtime: MapRuntime }>()
@@ -14,12 +14,15 @@ const busy = ref(false)
 const error = ref('')
 const copied = ref('')
 
-const converted = computed(() => (selected.value ? convertFromGcj02(selected.value) : null))
+const coordinateSystems: CoordinateSystem[] = ['wgs84', 'gcj02', 'cgcs2000', 'bd09']
+const converted = computed(() => (selected.value
+  ? Object.fromEntries(coordinateSystems.map((target) => [target, convertCoordinate(selected.value!, 'wgs84', target)]))
+  : null))
 
-function select(position: [number, number]) {
+function select(position: [number, number], center = true) {
   selected.value = position
   coordinateInput.value = formatCoordinate(position)
-  props.runtime.mark(position)
+  props.runtime.mark(position, { center })
 }
 
 async function search() {
@@ -53,7 +56,7 @@ async function copy(label: string, value: string) {
 }
 
 function onMapClick(event: any) {
-  select([event.lnglat.lng, event.lnglat.lat])
+  select([event.coordinate.x, event.coordinate.y], false)
 }
 
 onMounted(() => props.runtime.map.on('click', onMapClick))

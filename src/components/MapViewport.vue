@@ -4,7 +4,7 @@ import { LoaderCircle, TriangleAlert } from 'lucide-vue-next'
 import type { AMapCredentials } from '../lib/credentials'
 import { createMapRuntime, type MapRuntime } from '../lib/map-runtime'
 
-const props = defineProps<{ credentials: AMapCredentials }>()
+const props = defineProps<{ credentials?: AMapCredentials | null }>()
 const emit = defineEmits<{ ready: [runtime: MapRuntime]; error: [message: string] }>()
 
 const container = ref<HTMLElement>()
@@ -17,7 +17,7 @@ onMounted(async () => {
     runtime = await createMapRuntime(container.value!, props.credentials)
     emit('ready', runtime)
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : 'The AMap SDK could not be loaded.'
+    error.value = reason instanceof Error ? reason.message : 'The maptalks map could not be loaded.'
     emit('error', error.value)
   } finally {
     loading.value = false
@@ -28,7 +28,7 @@ onBeforeUnmount(() => runtime?.destroy())
 </script>
 
 <template>
-  <div ref="container" class="map-canvas" aria-label="AMap canvas" />
+  <div ref="container" class="map-canvas" aria-label="maptalks map canvas" />
   <div v-if="loading" class="map-state">
     <LoaderCircle class="spin" :size="22" />
     <span>Loading map</span>

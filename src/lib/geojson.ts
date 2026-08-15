@@ -1,4 +1,4 @@
-import { convertCoordinateFromGcj02, type CoordinateSystem } from './coordinates'
+import { convertCoordinate, convertCoordinateFromGcj02, type CoordinateSystem } from './coordinates'
 
 export type GeoJsonPosition = [number, number, ...number[]]
 export type GeoJsonCoordinates =
@@ -8,6 +8,7 @@ export type GeoJsonCoordinates =
   | GeoJsonPosition[][][]
 
 export interface GeoJsonFeature {
+  id?: string | number
   type: 'Feature'
   properties?: Record<string, unknown>
   geometry: {
@@ -46,6 +47,19 @@ function convertCoordinates(coordinates: unknown, target: CoordinateSystem): Geo
   return coordinates.map((child) => convertCoordinates(child, target)) as GeoJsonCoordinates
 }
 
+function convertCoordinatesBetween(
+  coordinates: unknown,
+  source: CoordinateSystem,
+  target: CoordinateSystem,
+): GeoJsonCoordinates {
+  if (!Array.isArray(coordinates)) throw new Error('GeoJSON coordinates must be arrays.')
+  if (isPosition(coordinates)) {
+    const [longitude, latitude, ...rest] = coordinates
+    return [...convertCoordinate([longitude, latitude], source, target), ...rest]
+  }
+  return coordinates.map((child) => convertCoordinatesBetween(child, source, target)) as GeoJsonCoordinates
+}
+
 export function convertGeoJsonFromGcj02(
   collection: GeoJsonFeatureCollection,
   target: CoordinateSystem,
@@ -61,6 +75,29 @@ export function convertGeoJsonFromGcj02(
       },
     })),
   }
+}
+
+export function convertGeoJson(
+  collection: GeoJsonFeatureCollection,
+  source: CoordinateSystem,
+  target: CoordinateSystem,
+): GeoJsonFeatureCollection {
+  if (source === 'gcj02') return convertGeoJsonFromGcj02(collection, target)
+  return {
+    type: 'FeatureCollection',
+    features: collection.features.map((feature) => ({
+      ...feature,
+      properties: feature.properties ? { ...feature.properties } : undefined,
+      geometry: {
+        ...feature.geometry,
+        coordinates: convertCoordinatesBetween(feature.geometry.coordinates, source, target),
+      },
+    })),
+  }
+}
+
+export function cloneGeoJson(collection: GeoJsonFeatureCollection): GeoJsonFeatureCollection {
+  return JSON.parse(JSON.stringify(collection)) as GeoJsonFeatureCollection
 }
 
 export const sampleGeoJson: GeoJsonFeatureCollection = {

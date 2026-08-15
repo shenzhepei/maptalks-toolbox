@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Download, FileJson, Focus, Image, RotateCcw, Upload } from 'lucide-vue-next'
-import { parseGeoJson, sampleGeoJson } from '../lib/geojson'
+import { convertGeoJson, parseGeoJson, sampleGeoJson } from '../lib/geojson'
 import type { MapExportProgress, MapRuntime } from '../lib/map-runtime'
+import type { MapWorkspaceController } from '../composables/useMapWorkspace'
 
-const props = defineProps<{ runtime: MapRuntime }>()
+const props = defineProps<{ runtime: MapRuntime; workspace: MapWorkspaceController }>()
 
 const fileInput = ref<HTMLInputElement>()
-const featureCount = ref(0)
 const fileName = ref('')
 const hasSelection = ref(false)
 const selecting = ref(false)
@@ -18,7 +18,7 @@ const status = ref('')
 const error = ref('')
 
 function renderSample() {
-  featureCount.value = props.runtime.renderGeoJson(sampleGeoJson)
+  props.workspace.replaceCollection(sampleGeoJson)
   fileName.value = 'demo.geojson'
   error.value = ''
 }
@@ -28,7 +28,7 @@ async function loadFile(event: Event) {
   if (!file) return
   try {
     const data = parseGeoJson(await file.text())
-    featureCount.value = props.runtime.renderGeoJson(data)
+    props.workspace.replaceCollection(convertGeoJson(data, props.workspace.snapshot.value.sourceCrs, 'wgs84'))
     fileName.value = file.name
     error.value = ''
   } catch (reason) {
@@ -41,10 +41,18 @@ async function loadFile(event: Event) {
 async function selectRegion() {
   selecting.value = true
   status.value = 'Draw a rectangle on the map'
-  await props.runtime.startRectangle()
-  selecting.value = false
-  hasSelection.value = true
-  status.value = 'Region selected'
+  try {
+    await props.runtime.startRectangle()
+    hasSelection.value = true
+    status.value = 'Region selected'
+  } catch (reason) {
+    if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
+      error.value = reason instanceof Error ? reason.message : 'Region selection failed.'
+    }
+    status.value = ''
+  } finally {
+    selecting.value = false
+  }
 }
 
 function resetSelection() {
@@ -72,8 +80,7 @@ async function exportMap(selectionOnly: boolean) {
 }
 
 function clearData() {
-  props.runtime.clearGeoJson()
-  featureCount.value = 0
+  props.workspace.clear()
   fileName.value = ''
 }
 </script>
@@ -93,7 +100,7 @@ function clearData() {
       </div>
       <div v-if="fileName" class="file-summary">
         <FileJson :size="18" />
-        <div><strong>{{ fileName }}</strong><span>{{ featureCount }} features</span></div>
+        <div><strong>{{ fileName }}</strong><span>{{ workspace.snapshot.value.collection.features.length }} features</span></div>
         <button class="icon-button" type="button" title="Clear data" @click="clearData"><RotateCcw :size="16" /></button>
       </div>
     </section>

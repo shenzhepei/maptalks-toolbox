@@ -1,30 +1,40 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { Github, Menu, Settings, X } from 'lucide-vue-next'
 import CredentialsDialog from './components/CredentialsDialog.vue'
 import ExplorerPanel from './components/ExplorerPanel.vue'
 import GeoJsonStudioPanel from './components/GeoJsonStudioPanel.vue'
+import LayerLabPanel from './components/LayerLabPanel.vue'
 import GisExportPanel from './components/GisExportPanel.vue'
 import MapLayerControl from './components/MapLayerControl.vue'
 import MapViewport from './components/MapViewport.vue'
 import { clearCredentials, readCredentials, saveCredentials, type AMapCredentials } from './lib/credentials'
 import { features, findFeature, type FeatureId } from './lib/features'
 import type { MapRuntime } from './lib/map-runtime'
+import { useMapWorkspace } from './composables/useMapWorkspace'
 
 const credentials = ref(readCredentials())
-const credentialsOpen = ref(!credentials.value)
+const credentialsOpen = ref(false)
 const activeFeatureId = ref<FeatureId>('explore')
 const runtime = ref<MapRuntime>()
 const mobilePanelOpen = ref(false)
 const mapError = ref('')
+const workspace = useMapWorkspace()
 
 const activeFeature = computed(() => findFeature(activeFeatureId.value)!)
+const workspaceFeatures = new Set<FeatureId>(['geojson-studio', 'gis-export'])
+
+function renderWorkspace(currentRuntime: MapRuntime) {
+  currentRuntime.renderGeoJson(workspace.snapshot.value.collection, {
+    style: workspace.snapshot.value.style,
+    selectedFeatureId: workspace.selectedFeatureId.value,
+    onSelect: (id) => (workspace.selectedFeatureId.value = id),
+  })
+}
 
 function applyCredentials(value: AMapCredentials) {
-  const hadCredentials = Boolean(credentials.value)
-  credentials.value = saveCredentials(value)
-  credentialsOpen.value = false
-  if (hadCredentials) window.location.reload()
+  saveCredentials(value)
+  window.location.reload()
 }
 
 function removeCredentials() {
@@ -33,9 +43,23 @@ function removeCredentials() {
 }
 
 function selectFeature(id: FeatureId) {
+  if (id === activeFeatureId.value) return
+  runtime.value?.clearGraphics()
   activeFeatureId.value = id
   mobilePanelOpen.value = false
+  if (runtime.value && workspaceFeatures.has(id)) {
+    nextTick(() => runtime.value && renderWorkspace(runtime.value))
+  }
 }
+
+watch(
+  [runtime, workspace.snapshot, workspace.selectedFeatureId],
+  ([currentRuntime]) => {
+    if (!currentRuntime) return
+    if (workspaceFeatures.has(activeFeatureId.value)) renderWorkspace(currentRuntime)
+  },
+  { deep: true },
+)
 </script>
 
 <template>
@@ -44,15 +68,15 @@ function selectFeature(id: FeatureId) {
       <button class="icon-button mobile-menu" type="button" title="Open tools" @click="mobilePanelOpen = true">
         <Menu :size="19" />
       </button>
-      <a class="brand" href="./" aria-label="AMap Toolbox home">
-        <span class="brand-mark">A</span>
-        <span><strong>AMap Toolbox</strong><small>Browser GIS utilities</small></span>
+      <a class="brand" href="./" aria-label="GIS Toolbox home">
+        <span class="brand-mark">M</span>
+        <span><strong>GIS Toolbox</strong><small>Powered by maptalks</small></span>
       </a>
       <div class="topbar-actions">
         <a class="icon-button" href="https://github.com/shenzhepei/amap-toolbox" target="_blank" rel="noreferrer" title="GitHub">
           <Github :size="19" />
         </a>
-        <button class="icon-button" type="button" title="AMap credentials" @click="credentialsOpen = true">
+        <button class="icon-button" type="button" title="Optional AMap services" @click="credentialsOpen = true">
           <Settings :size="19" />
         </button>
       </div>
@@ -82,20 +106,20 @@ function selectFeature(id: FeatureId) {
       </header>
       <template v-if="runtime">
         <ExplorerPanel v-if="activeFeatureId === 'explore'" :runtime="runtime" />
-        <GeoJsonStudioPanel v-else-if="activeFeatureId === 'geojson-studio'" :runtime="runtime" />
-        <GisExportPanel v-else :runtime="runtime" />
+        <GeoJsonStudioPanel
+          v-else-if="activeFeatureId === 'geojson-studio'"
+          :runtime="runtime"
+          :workspace="workspace"
+          @request-map="mobilePanelOpen = false"
+        />
+        <LayerLabPanel v-else-if="activeFeatureId === 'layer-lab'" :runtime="runtime" />
+        <GisExportPanel v-else :runtime="runtime" :workspace="workspace" />
       </template>
       <div v-else class="panel-empty">{{ mapError || 'Waiting for map' }}</div>
     </aside>
 
     <main class="map-stage">
-      <MapViewport
-        v-if="credentials"
-        :credentials="credentials"
-        @ready="runtime = $event"
-        @error="mapError = $event"
-      />
-      <div v-else class="map-placeholder" />
+      <MapViewport :credentials="credentials" @ready="runtime = $event" @error="mapError = $event" />
       <MapLayerControl v-if="runtime" :runtime="runtime" />
     </main>
 
@@ -104,7 +128,7 @@ function selectFeature(id: FeatureId) {
     <CredentialsDialog
       :open="credentialsOpen"
       :initial="credentials"
-      :can-close="Boolean(credentials)"
+      :can-close="true"
       @close="credentialsOpen = false"
       @save="applyCredentials"
       @clear="removeCredentials"

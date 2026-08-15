@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ExternalLink, KeyRound, Trash2, X } from 'lucide-vue-next'
+import { ExternalLink, KeyRound, ShieldCheck, Trash2, X } from 'lucide-vue-next'
 import type { AMapCredentials } from '../lib/credentials'
 
 const props = defineProps<{
@@ -34,8 +34,8 @@ function submit() {
       <header class="dialog-header">
         <span class="dialog-icon"><KeyRound :size="19" /></span>
         <div>
-          <h2 id="credentials-title">AMap credentials</h2>
-          <p>Saved in this browser until cleared</p>
+          <h2 id="credentials-title">Optional AMap services</h2>
+          <p>Maptalks works without a key</p>
         </div>
         <button v-if="canClose" class="icon-button" type="button" title="Close" @click="emit('close')">
           <X :size="18" />
@@ -43,6 +43,16 @@ function submit() {
       </header>
 
       <form @submit.prevent="submit">
+        <div class="credential-privacy" role="note">
+          <ShieldCheck :size="18" />
+          <div>
+            <strong>Your service credentials stay local</strong>
+            <span>
+              This site never receives or uploads your key. It remains in this browser's local storage until you clear it,
+              and is sent directly to AMap only when its services are loaded.
+            </span>
+          </div>
+        </div>
         <label>
           <span>Web JS API key</span>
           <input v-model="apiKey" name="api-key" autocomplete="off" placeholder="Enter your key" />
@@ -72,7 +82,7 @@ function submit() {
           </button>
           <span class="action-spacer" />
           <button v-if="canClose" class="button secondary" type="button" @click="emit('close')">Cancel</button>
-          <button class="button primary" type="submit">Open map</button>
+          <button class="button primary" type="submit">Save services</button>
         </footer>
       </form>
     </section>
