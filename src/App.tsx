@@ -1,10 +1,12 @@
 import { Code2, Menu, Settings, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import CredentialsDialog from './components/CredentialsDialog'
 import ExplorerPanel from './components/ExplorerPanel'
 import GeoJsonStudioPanel from './components/GeoJsonStudioPanel'
 import GisExportPanel from './components/GisExportPanel'
 import LayerLabPanel from './components/LayerLabPanel'
+import LanguageSwitcher from './components/LanguageSwitcher'
 import MapLayerControl from './components/MapLayerControl'
 import MapViewport from './components/MapViewport'
 import { useMapWorkspace } from './hooks/useMapWorkspace'
@@ -15,6 +17,7 @@ import type { MapRuntime } from './lib/map-runtime'
 const workspaceFeatures = new Set<FeatureId>(['geojson-studio', 'gis-export'])
 
 export default function App() {
+  const { t } = useTranslation()
   const [credentials] = useState(() => readCredentials())
   const [credentialsOpen, setCredentialsOpen] = useState(false)
   const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('explore')
@@ -64,24 +67,25 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="icon-button mobile-menu" type="button" title="Open tools" onClick={() => setMobilePanelOpen(true)}>
+        <button className="icon-button mobile-menu" type="button" title={t('app.openTools')} onClick={() => setMobilePanelOpen(true)}>
           <Menu size={19} />
         </button>
-        <a className="brand" href="./" aria-label="GIS Toolbox home">
+        <a className="brand" href="./" aria-label={t('app.home')}>
           <span className="brand-mark">M</span>
-          <span><strong>GIS Toolbox</strong><small>Powered by maptalks</small></span>
+          <span><strong>{t('app.brand')}</strong><small>{t('app.powered')}</small></span>
         </a>
         <div className="topbar-actions">
           <a className="icon-button" href="https://github.com/shenzhepei/maptalks-toolbox" target="_blank" rel="noreferrer" title="GitHub">
             <Code2 size={19} />
           </a>
-          <button className="icon-button" type="button" title="Optional AMap services" onClick={() => setCredentialsOpen(true)}>
+          <LanguageSwitcher />
+          <button className="icon-button" type="button" title={t('app.settings')} onClick={() => setCredentialsOpen(true)}>
             <Settings size={19} />
           </button>
         </div>
       </header>
 
-      <aside className="feature-rail" aria-label="Tool selection">
+      <aside className="feature-rail" aria-label={t('app.toolSelection')}>
         {features.map((feature) => {
           const Icon = feature.icon
           return (
@@ -89,11 +93,11 @@ export default function App() {
               key={feature.id}
               type="button"
               className={activeFeatureId === feature.id ? 'active' : ''}
-              title={feature.label}
+              title={t(`features.${feature.id}.label`)}
               onClick={() => selectFeature(feature.id)}
             >
               <Icon size={20} />
-              <span>{feature.label}</span>
+              <span>{t(`features.${feature.id}.label`)}</span>
             </button>
           )
         })}
@@ -102,8 +106,8 @@ export default function App() {
       <aside className={`control-panel ${mobilePanelOpen ? 'open' : ''}`}>
         <header className="panel-header">
           <ActiveIcon size={19} />
-          <h1>{activeFeature.label}</h1>
-          <button className="icon-button mobile-close" type="button" title="Close tools" onClick={() => setMobilePanelOpen(false)}>
+          <h1>{t(`features.${activeFeature.id}.label`)}</h1>
+          <button className="icon-button mobile-close" type="button" title={t('app.closeTools')} onClick={() => setMobilePanelOpen(false)}>
             <X size={18} />
           </button>
         </header>
@@ -117,7 +121,7 @@ export default function App() {
             {activeFeatureId === 'gis-export' && <GisExportPanel runtime={runtime} workspace={workspace} />}
           </>
         ) : (
-          <div className="panel-empty">{mapError || 'Waiting for map'}</div>
+          <div className="panel-empty">{mapError || t('app.waiting')}</div>
         )}
       </aside>
 
@@ -127,7 +131,7 @@ export default function App() {
       </main>
 
       {mobilePanelOpen && (
-        <button className="mobile-scrim" type="button" aria-label="Close tools" onClick={() => setMobilePanelOpen(false)} />
+        <button className="mobile-scrim" type="button" aria-label={t('app.closeTools')} onClick={() => setMobilePanelOpen(false)} />
       )}
 
       <CredentialsDialog

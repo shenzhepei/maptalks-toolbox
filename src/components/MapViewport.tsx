@@ -1,5 +1,7 @@
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { translateError } from '../i18n'
 import type { AMapCredentials } from '../lib/credentials'
 import { createMapRuntime, type MapRuntime } from '../lib/map-runtime'
 
@@ -10,6 +12,7 @@ interface MapViewportProps {
 }
 
 export default function MapViewport({ credentials, onReady, onError }: MapViewportProps) {
+  const { t } = useTranslation()
   const container = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -28,7 +31,7 @@ export default function MapViewport({ credentials, onReady, onError }: MapViewpo
         onReady(nextRuntime)
       } catch (reason) {
         if (disposed) return
-        const message = reason instanceof Error ? reason.message : 'The maptalks map could not be loaded.'
+        const message = translateError(t, reason, 'map.loadFailed')
         setError(message)
         onError(message)
       } finally {
@@ -45,9 +48,9 @@ export default function MapViewport({ credentials, onReady, onError }: MapViewpo
 
   return (
     <>
-      <div ref={container} className="map-canvas" aria-label="maptalks map canvas" />
+      <div ref={container} className="map-canvas" aria-label={t('map.canvas')} />
       {loading && (
-        <div className="map-state"><LoaderCircle className="spin" size={22} /><span>Loading map</span></div>
+        <div className="map-state"><LoaderCircle className="spin" size={22} /><span>{t('map.loading')}</span></div>
       )}
       {!loading && error && (
         <div className="map-state error-state"><TriangleAlert size={22} /><span>{error}</span></div>

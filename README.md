@@ -25,6 +25,7 @@ An extensible React and TypeScript browser GIS toolbox powered by maptalks for m
 ## Features
 
 - Open and explore the maptalks map without an API key.
+- Switch the complete interface between English and Simplified Chinese; first visits use English and explicit choices persist locally.
 - Inspect WGS84 coordinates by clicking the map and convert them to GCJ-02, CGCS2000, and BD-09.
 - Switch between the standard and satellite base layers.
 - Draw points, lines, and polygons and copy the generated GeoJSON.

@@ -1,5 +1,7 @@
 import { Download, FileJson, Focus, Image, RotateCcw, Upload } from 'lucide-react'
 import { type ChangeEvent, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { translateError } from '../i18n'
 import type { MapWorkspaceController } from '../hooks/useMapWorkspace'
 import { convertGeoJson, parseGeoJson, sampleGeoJson } from '../lib/geojson'
 import type { MapExportProgress, MapRuntime } from '../lib/map-runtime'
@@ -10,6 +12,7 @@ interface GisExportPanelProps {
 }
 
 export default function GisExportPanel({ runtime, workspace }: GisExportPanelProps) {
+  const { t } = useTranslation()
   const fileInput = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState('')
   const [hasSelection, setHasSelection] = useState(false)
@@ -35,7 +38,7 @@ export default function GisExportPanel({ runtime, workspace }: GisExportPanelPro
       setFileName(file.name)
       setError('')
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The file could not be read.')
+      setError(translateError(t, reason, 'export.fileFailed'))
     } finally {
       event.target.value = ''
     }
@@ -43,14 +46,14 @@ export default function GisExportPanel({ runtime, workspace }: GisExportPanelPro
 
   const selectRegion = async (): Promise<void> => {
     setSelecting(true)
-    setStatus('Draw a rectangle on the map')
+    setStatus(t('export.drawHint'))
     try {
       await runtime.startRectangle()
       setHasSelection(true)
-      setStatus('Region selected')
+      setStatus(t('export.selected'))
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
-        setError(reason instanceof Error ? reason.message : 'Region selection failed.')
+        setError(translateError(t, reason, 'export.selectionFailed'))
       }
       setStatus('')
     } finally {
@@ -70,9 +73,9 @@ export default function GisExportPanel({ runtime, workspace }: GisExportPanelPro
     setError('')
     try {
       await runtime.exportPng({ selectionOnly, zoom: exportZoom, onProgress: setProgress })
-      setStatus('PNG downloaded')
+      setStatus(t('export.downloaded'))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'PNG export failed.')
+      setError(translateError(t, reason, 'export.exportFailed'))
     } finally {
       setExporting(false)
     }
@@ -86,43 +89,43 @@ export default function GisExportPanel({ runtime, workspace }: GisExportPanelPro
   return (
     <div className="panel-scroll">
       <section className="tool-section">
-        <h2>GeoJSON data</h2>
+        <h2>{t('export.data')}</h2>
         <input ref={fileInput} className="visually-hidden" type="file" accept=".json,.geojson,application/geo+json" onChange={(event) => void loadFile(event)} />
         <div className="button-grid">
-          <button className="button primary" type="button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Import file</button>
-          <button className="button secondary" type="button" onClick={renderSample}><FileJson size={16} /> Demo data</button>
+          <button className="button primary" type="button" onClick={() => fileInput.current?.click()}><Upload size={16} /> {t('export.import')}</button>
+          <button className="button secondary" type="button" onClick={renderSample}><FileJson size={16} /> {t('export.demo')}</button>
         </div>
         {fileName && (
           <div className="file-summary">
             <FileJson size={18} />
-            <div><strong>{fileName}</strong><span>{workspace.snapshot.collection.features.length} features</span></div>
-            <button className="icon-button" type="button" title="Clear data" onClick={clearData}><RotateCcw size={16} /></button>
+            <div><strong>{fileName}</strong><span>{t('export.features', { count: workspace.snapshot.collection.features.length })}</span></div>
+            <button className="icon-button" type="button" title={t('export.clearData')} onClick={clearData}><RotateCcw size={16} /></button>
           </div>
         )}
       </section>
 
       <section className="tool-section">
-        <h2>Export area</h2>
+        <h2>{t('export.area')}</h2>
         <div className="button-grid">
-          <button className="button secondary" type="button" disabled={selecting} onClick={() => void selectRegion()}><Focus size={16} /> {selecting ? 'Drawing...' : 'Select region'}</button>
-          <button className="button secondary" type="button" disabled={!hasSelection} onClick={resetSelection}><RotateCcw size={16} /> Reset</button>
+          <button className="button secondary" type="button" disabled={selecting} onClick={() => void selectRegion()}><Focus size={16} /> {t(selecting ? 'export.draw' : 'export.select')}</button>
+          <button className="button secondary" type="button" disabled={!hasSelection} onClick={resetSelection}><RotateCcw size={16} /> {t('export.reset')}</button>
         </div>
         {status && <p className="status-line">{status}</p>}
       </section>
 
       <section className="tool-section">
-        <h2>PNG output</h2>
-        <label className="field-label" htmlFor="export-zoom">Detail zoom</label>
+        <h2>{t('export.output')}</h2>
+        <label className="field-label" htmlFor="export-zoom">{t('export.zoom')}</label>
         <input id="export-zoom" value={exportZoom} onChange={(event) => setExportZoom(Number(event.target.value))} type="number" min="3" max="20" step="1" disabled={exporting} />
         <div className="export-actions">
-          <button className="button primary" type="button" disabled={exporting} onClick={() => void exportMap(false)}><Image size={16} /> Current view</button>
-          <button className="button primary" type="button" disabled={exporting || !hasSelection} onClick={() => void exportMap(true)}><Download size={16} /> Selected region</button>
+          <button className="button primary" type="button" disabled={exporting} onClick={() => void exportMap(false)}><Image size={16} /> {t('export.current')}</button>
+          <button className="button primary" type="button" disabled={exporting || !hasSelection} onClick={() => void exportMap(true)}><Download size={16} /> {t('export.selectedRegion')}</button>
         </div>
         {progress && (
           <div className="export-progress">
             <progress value={progress.completed} max={progress.total} />
             <div>
-              <span>{progress.phase === 'capturing' ? 'Capturing' : 'Merging'} {progress.completed} / {progress.total}</span>
+              <span>{t(progress.phase === 'capturing' ? 'export.capturing' : 'export.merging')} {progress.completed} / {progress.total}</span>
               <span>{progress.width} x {progress.height} px</span>
             </div>
           </div>

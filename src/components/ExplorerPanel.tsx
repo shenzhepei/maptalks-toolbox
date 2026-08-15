@@ -1,11 +1,14 @@
 import { Check, Clipboard, LocateFixed, Search } from 'lucide-react'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { translateError } from '../i18n'
 import { convertCoordinate, formatCoordinate, parseCoordinate, type CoordinateSystem } from '../lib/coordinates'
 import type { MapRuntime, PlaceResult } from '../lib/map-runtime'
 
 const coordinateSystems: CoordinateSystem[] = ['wgs84', 'gcj02', 'cgcs2000', 'bd09']
 
 export default function ExplorerPanel({ runtime }: { runtime: MapRuntime }) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [coordinateInput, setCoordinateInput] = useState('')
   const [results, setResults] = useState<PlaceResult[]>([])
@@ -34,7 +37,7 @@ export default function ExplorerPanel({ runtime }: { runtime: MapRuntime }) {
       setResults(nextResults)
       if (nextResults[0]) select(nextResults[0].position)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Search failed.')
+      setError(translateError(t, reason, 'explorer.searchFailed'))
     } finally {
       setBusy(false)
     }
@@ -44,7 +47,7 @@ export default function ExplorerPanel({ runtime }: { runtime: MapRuntime }) {
     event.preventDefault()
     const position = parseCoordinate(coordinateInput)
     if (!position) {
-      setError('Use longitude, latitude within valid ranges.')
+      setError(t('explorer.invalidCoordinate'))
       return
     }
     setError('')
@@ -68,10 +71,10 @@ export default function ExplorerPanel({ runtime }: { runtime: MapRuntime }) {
   return (
     <div className="panel-scroll">
       <section className="tool-section">
-        <h2>Place search</h2>
+        <h2>{t('explorer.placeSearch')}</h2>
         <form className="input-action" onSubmit={(event) => void search(event)}>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Place keyword" placeholder="Search a place" />
-          <button className="icon-button solid" type="submit" title="Search" disabled={busy}><Search size={18} /></button>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('explorer.keyword')} placeholder={t('explorer.searchPlaceholder')} />
+          <button className="icon-button solid" type="submit" title={t('explorer.search')} disabled={busy}><Search size={18} /></button>
         </form>
         {results.length > 0 && (
           <div className="result-list">
@@ -85,17 +88,17 @@ export default function ExplorerPanel({ runtime }: { runtime: MapRuntime }) {
       </section>
 
       <section className="tool-section">
-        <h2>Coordinates</h2>
+        <h2>{t('explorer.coordinates')}</h2>
         <form className="input-action" onSubmit={goToCoordinate}>
-          <input value={coordinateInput} onChange={(event) => setCoordinateInput(event.target.value)} aria-label="Longitude and latitude" placeholder="120.155100, 30.274100" />
-          <button className="icon-button solid" type="submit" title="Locate"><LocateFixed size={18} /></button>
+          <input value={coordinateInput} onChange={(event) => setCoordinateInput(event.target.value)} aria-label={t('explorer.coordinateInput')} placeholder="120.155100, 30.274100" />
+          <button className="icon-button solid" type="submit" title={t('explorer.locate')}><LocateFixed size={18} /></button>
         </form>
         {converted && (
           <div className="coordinate-list">
             {coordinateSystems.map((label) => {
               const value = converted[label]
               return (
-                <button key={label} type="button" title={`Copy ${label}`} onClick={() => void copy(label, formatCoordinate(value))}>
+                <button key={label} type="button" title={t('explorer.copy', { system: label })} onClick={() => void copy(label, formatCoordinate(value))}>
                   <span>{label.toUpperCase()}</span><code>{formatCoordinate(value)}</code>
                   {copied === label ? <Check size={15} /> : <Clipboard size={15} />}
                 </button>

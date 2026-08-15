@@ -47,6 +47,27 @@ button { color: inherit; }
 .brand strong { font-size: 14px; line-height: 18px; }
 .brand small { color: #71807b; font-size: 11px; }
 .topbar-actions { display: flex; gap: 6px; margin-left: auto; }
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-left: 9px;
+  border: 1px solid #d7dfdc;
+  border-radius: 6px;
+  color: #52615c;
+  background: #fff;
+}
+.language-switcher select {
+  width: 104px;
+  height: 34px;
+  padding-left: 2px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
 
 .icon-button {
   display: inline-grid;
@@ -352,6 +373,8 @@ select:focus { border-color: #16856f; box-shadow: 0 0 0 3px rgba(22, 133, 111, .
 
 @media (max-width: 420px) {
   .brand strong { font-size: 13px; }
+  .language-switcher { gap: 3px; padding-left: 6px; }
+  .language-switcher select { width: 88px; }
   .dialog-backdrop { align-items: end; padding: 0; }
   .dialog { border-radius: 8px 8px 0 0; }
   .dialog-links { flex-direction: column; gap: 8px; }
