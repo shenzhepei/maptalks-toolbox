@@ -155,10 +155,10 @@ function dataUrlToBlob(dataUrl: string) {
   return new Blob([bytes], { type: mimeType })
 }
 
-export async function createMapRuntime(
+export function createMapRuntime(
   container: HTMLElement,
   credentials?: AMapCredentials | null,
-): Promise<MapRuntime> {
+): MapRuntime {
   const standardLayer = new TileLayer('base-standard', {
     urlTemplate: 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
     crossOrigin: 'anonymous',

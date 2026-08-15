@@ -1,4 +1,4 @@
-import { Image, Layers3, MapPinned, Shapes } from 'lucide-vue-next'
+import { Image, Layers3, MapPinned, Shapes, type LucideIcon } from 'lucide-react'
 
 export type FeatureId = 'explore' | 'geojson-studio' | 'layer-lab' | 'gis-export'
 
@@ -6,7 +6,7 @@ export interface ToolboxFeature {
   id: FeatureId
   label: string
   description: string
-  icon: typeof MapPinned
+  icon: LucideIcon
 }
 
 export const features: ToolboxFeature[] = [

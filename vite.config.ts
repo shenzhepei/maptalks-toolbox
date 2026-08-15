@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/maptalks-toolbox/' : '/',
-  plugins: [vue()],
+  plugins: [react()],
 }))

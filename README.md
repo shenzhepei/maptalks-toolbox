@@ -7,15 +7,16 @@ English | [简体中文](README-zh-CN.md)
 <!-- repo-badges:start -->
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![pnpm 10.33.2](https://img.shields.io/badge/pnpm-10.33.2-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io)
-[![Vue 3.5.41](https://img.shields.io/badge/Vue-3.5.41-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white)](https://vuejs.org)
+[![React 19.2.8](https://img.shields.io/badge/React-19.2.8-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
 [![Vite 8.2.1](https://img.shields.io/badge/Vite-8.2.1-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
 [![TypeScript 6.0.3](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Sass 1.102.0](https://img.shields.io/badge/Sass-1.102.0-CC6699?style=flat-square&logo=sass&logoColor=white)](https://sass-lang.com)
 [![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/maptalks-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/maptalks-toolbox)
 [![License](https://img.shields.io/github/license/shenzhepei/maptalks-toolbox?style=flat-square)](https://github.com/shenzhepei/maptalks-toolbox/blob/HEAD/LICENSE)
 [![Sponsor](https://img.shields.io/github/sponsors/shenzhepei?style=flat-square&logo=githubsponsors&label=Sponsor)](https://github.com/sponsors/shenzhepei)
 <!-- repo-badges:end -->
 
-An extensible browser GIS toolbox powered by maptalks for map exploration, coordinate conversion, GeoJSON visualization, service debugging, and map image export.
+An extensible React and TypeScript browser GIS toolbox powered by maptalks for map exploration, coordinate conversion, GeoJSON visualization, service debugging, and map image export. Vite provides the build pipeline, and SCSS keeps the interface styles maintainable.
 
 **[Open the live app](https://shenzhepei.github.io/maptalks-toolbox/)**
 
@@ -69,8 +70,8 @@ Coverage measures the production modules under `src/lib` and produces `coverage/
 ## Adding a feature
 
 1. Add a stable ID and metadata entry to `src/lib/features.ts`.
-2. Implement the feature panel under `src/components` using the shared `MapRuntime` interface.
-3. Mount the panel in `src/App.vue` and add focused tests for reusable logic in `src/lib`.
+2. Implement the feature panel as a React component under `src/components/*.tsx` using the shared `MapRuntime` interface.
+3. Mount the panel in `src/App.tsx`, keep shared styles in `src/styles.scss`, and add focused tests for reusable logic in `src/lib`.
 4. Keep provider credentials in browser-local service adapters.
 
 This structure keeps one maptalks map instance shared while provider services and future layer formats remain independently maintainable.

@@ -7,15 +7,16 @@
 <!-- repo-badges:start -->
 [![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![pnpm 10.33.2](https://img.shields.io/badge/pnpm-10.33.2-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io)
-[![Vue 3.5.41](https://img.shields.io/badge/Vue-3.5.41-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white)](https://vuejs.org)
+[![React 19.2.8](https://img.shields.io/badge/React-19.2.8-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
 [![Vite 8.2.1](https://img.shields.io/badge/Vite-8.2.1-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
 [![TypeScript 6.0.3](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Sass 1.102.0](https://img.shields.io/badge/Sass-1.102.0-CC6699?style=flat-square&logo=sass&logoColor=white)](https://sass-lang.com)
 [![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/maptalks-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/maptalks-toolbox)
 [![License](https://img.shields.io/github/license/shenzhepei/maptalks-toolbox?style=flat-square)](https://github.com/shenzhepei/maptalks-toolbox/blob/HEAD/LICENSE)
 [![Sponsor](https://img.shields.io/github/sponsors/shenzhepei?style=flat-square&logo=githubsponsors&label=Sponsor)](https://github.com/sponsors/shenzhepei)
 <!-- repo-badges:end -->
 
-一个基于 maptalks 的可扩展浏览器端 GIS 工具箱，支持地图探索、坐标转换、GeoJSON 可视化、服务调试与地图图片导出。
+一个基于 React、TypeScript 与 maptalks 的可扩展浏览器端 GIS 工具箱，支持地图探索、坐标转换、GeoJSON 可视化、服务调试与地图图片导出。项目使用 Vite 构建，并通过 SCSS 维护界面样式。
 
 **[打开在线应用](https://shenzhepei.github.io/maptalks-toolbox/)**
 
@@ -69,8 +70,8 @@ pnpm build
 ## 添加新功能
 
 1. 在 `src/lib/features.ts` 中添加稳定 ID 和功能元数据。
-2. 在 `src/components` 下实现功能面板，并复用统一的 `MapRuntime` 接口。
-3. 在 `src/App.vue` 中挂载面板，为 `src/lib` 中的可复用逻辑添加聚焦测试。
+2. 在 `src/components/*.tsx` 下实现 React 功能面板，并复用统一的 `MapRuntime` 接口。
+3. 在 `src/App.tsx` 中挂载面板，将共享样式维护在 `src/styles.scss`，并为 `src/lib` 中的可复用逻辑添加聚焦测试。
 4. 所有服务商凭据都使用浏览器本地的服务适配器流程。
 
 这种结构只共享一个 maptalks 地图实例，同时让服务商能力和后续图层格式可以独立维护。
