@@ -10,14 +10,16 @@
 [![Vue 3.5.41](https://img.shields.io/badge/Vue-3.5.41-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white)](https://vuejs.org)
 [![Vite 8.2.1](https://img.shields.io/badge/Vite-8.2.1-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
 [![TypeScript 6.0.3](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/amap-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/amap-toolbox)
-[![License](https://img.shields.io/github/license/shenzhepei/amap-toolbox?style=flat-square)](https://github.com/shenzhepei/amap-toolbox/blob/HEAD/LICENSE)
+[![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/maptalks-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/maptalks-toolbox)
+[![License](https://img.shields.io/github/license/shenzhepei/maptalks-toolbox?style=flat-square)](https://github.com/shenzhepei/maptalks-toolbox/blob/HEAD/LICENSE)
 [![Sponsor](https://img.shields.io/github/sponsors/shenzhepei?style=flat-square&logo=githubsponsors&label=Sponsor)](https://github.com/sponsors/shenzhepei)
 <!-- repo-badges:end -->
 
 一个基于 maptalks 的可扩展浏览器端 GIS 工具箱，支持地图探索、坐标转换、GeoJSON 可视化、服务调试与地图图片导出。
 
-**在线应用：** https://shenzhepei.github.io/amap-toolbox/
+**[打开在线应用](https://shenzhepei.github.io/maptalks-toolbox/)**
+
+![Maptalks 地图工具箱界面](docs/preview.webp)
 
 ## 功能
 

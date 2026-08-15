@@ -10,14 +10,16 @@ English | [简体中文](README-zh-CN.md)
 [![Vue 3.5.41](https://img.shields.io/badge/Vue-3.5.41-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white)](https://vuejs.org)
 [![Vite 8.2.1](https://img.shields.io/badge/Vite-8.2.1-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
 [![TypeScript 6.0.3](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/amap-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/amap-toolbox)
-[![License](https://img.shields.io/github/license/shenzhepei/amap-toolbox?style=flat-square)](https://github.com/shenzhepei/amap-toolbox/blob/HEAD/LICENSE)
+[![Test Coverage](https://img.shields.io/codecov/c/github/shenzhepei/maptalks-toolbox?style=flat-square&logo=codecov)](https://codecov.io/gh/shenzhepei/maptalks-toolbox)
+[![License](https://img.shields.io/github/license/shenzhepei/maptalks-toolbox?style=flat-square)](https://github.com/shenzhepei/maptalks-toolbox/blob/HEAD/LICENSE)
 [![Sponsor](https://img.shields.io/github/sponsors/shenzhepei?style=flat-square&logo=githubsponsors&label=Sponsor)](https://github.com/sponsors/shenzhepei)
 <!-- repo-badges:end -->
 
 An extensible browser GIS toolbox powered by maptalks for map exploration, coordinate conversion, GeoJSON visualization, service debugging, and map image export.
 
-**Live app:** https://shenzhepei.github.io/amap-toolbox/
+**[Open the live app](https://shenzhepei.github.io/maptalks-toolbox/)**
+
+![Maptalks Toolbox interface](docs/preview.webp)
 
 ## Features
 

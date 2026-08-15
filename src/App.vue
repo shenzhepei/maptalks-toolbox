@@ -73,7 +73,7 @@ watch(
         <span><strong>GIS Toolbox</strong><small>Powered by maptalks</small></span>
       </a>
       <div class="topbar-actions">
-        <a class="icon-button" href="https://github.com/shenzhepei/amap-toolbox" target="_blank" rel="noreferrer" title="GitHub">
+        <a class="icon-button" href="https://github.com/shenzhepei/maptalks-toolbox" target="_blank" rel="noreferrer" title="GitHub">
           <Github :size="19" />
         </a>
         <button class="icon-button" type="button" title="Optional AMap services" @click="credentialsOpen = true">
