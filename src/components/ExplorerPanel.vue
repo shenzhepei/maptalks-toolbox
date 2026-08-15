@@ -10,7 +10,6 @@ const query = ref('')
 const coordinateInput = ref('')
 const results = ref<PlaceResult[]>([])
 const selected = ref<[number, number] | null>(null)
-const satellite = ref(false)
 const busy = ref(false)
 const error = ref('')
 const copied = ref('')
@@ -102,17 +101,6 @@ onBeforeUnmount(() => props.runtime.map.off('click', onMapClick))
         </button>
       </div>
       <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
-    </section>
-
-    <section class="tool-section compact-section">
-      <div>
-        <h2>Satellite layer</h2>
-        <p>{{ satellite ? 'Visible' : 'Hidden' }}</p>
-      </div>
-      <label class="switch">
-        <input v-model="satellite" type="checkbox" @change="runtime.setSatellite(satellite)" />
-        <span />
-      </label>
     </section>
   </div>
 </template>

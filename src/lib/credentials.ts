@@ -5,10 +5,10 @@ export interface AMapCredentials {
 
 const storageKey = 'amap-toolbox.credentials'
 
-const getSessionStorage = (): Storage | undefined =>
-  typeof window === 'undefined' ? undefined : window.sessionStorage
+const getLocalStorage = (): Storage | undefined =>
+  typeof window === 'undefined' ? undefined : window.localStorage
 
-export function readCredentials(storage = getSessionStorage()): AMapCredentials | null {
+export function readCredentials(storage = getLocalStorage()): AMapCredentials | null {
   if (!storage) return null
   try {
     const value = JSON.parse(storage.getItem(storageKey) ?? '') as Partial<AMapCredentials>
@@ -19,7 +19,7 @@ export function readCredentials(storage = getSessionStorage()): AMapCredentials 
   }
 }
 
-export function saveCredentials(credentials: AMapCredentials, storage = getSessionStorage()) {
+export function saveCredentials(credentials: AMapCredentials, storage = getLocalStorage()) {
   const normalized = {
     apiKey: credentials.apiKey.trim(),
     securityCode: credentials.securityCode.trim(),
@@ -31,6 +31,6 @@ export function saveCredentials(credentials: AMapCredentials, storage = getSessi
   return normalized
 }
 
-export function clearCredentials(storage = getSessionStorage()) {
+export function clearCredentials(storage = getLocalStorage()) {
   storage?.removeItem(storageKey)
 }

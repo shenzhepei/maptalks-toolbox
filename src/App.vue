@@ -3,7 +3,9 @@ import { computed, ref } from 'vue'
 import { Github, Menu, Settings, X } from 'lucide-vue-next'
 import CredentialsDialog from './components/CredentialsDialog.vue'
 import ExplorerPanel from './components/ExplorerPanel.vue'
+import GeoJsonStudioPanel from './components/GeoJsonStudioPanel.vue'
 import GisExportPanel from './components/GisExportPanel.vue'
+import MapLayerControl from './components/MapLayerControl.vue'
 import MapViewport from './components/MapViewport.vue'
 import { clearCredentials, readCredentials, saveCredentials, type AMapCredentials } from './lib/credentials'
 import { features, findFeature, type FeatureId } from './lib/features'
@@ -80,6 +82,7 @@ function selectFeature(id: FeatureId) {
       </header>
       <template v-if="runtime">
         <ExplorerPanel v-if="activeFeatureId === 'explore'" :runtime="runtime" />
+        <GeoJsonStudioPanel v-else-if="activeFeatureId === 'geojson-studio'" :runtime="runtime" />
         <GisExportPanel v-else :runtime="runtime" />
       </template>
       <div v-else class="panel-empty">{{ mapError || 'Waiting for map' }}</div>
@@ -93,6 +96,7 @@ function selectFeature(id: FeatureId) {
         @error="mapError = $event"
       />
       <div v-else class="map-placeholder" />
+      <MapLayerControl v-if="runtime" :runtime="runtime" />
     </main>
 
     <button v-if="mobilePanelOpen" class="mobile-scrim" type="button" aria-label="Close tools" @click="mobilePanelOpen = false" />

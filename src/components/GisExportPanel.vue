@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { Download, FileJson, Focus, Image, RotateCcw, Upload } from 'lucide-vue-next'
 import { parseGeoJson, sampleGeoJson } from '../lib/geojson'
-import type { MapRuntime } from '../lib/map-runtime'
+import type { MapExportProgress, MapRuntime } from '../lib/map-runtime'
 
 const props = defineProps<{ runtime: MapRuntime }>()
 
@@ -12,6 +12,8 @@ const fileName = ref('')
 const hasSelection = ref(false)
 const selecting = ref(false)
 const exporting = ref(false)
+const exportZoom = ref(Math.min(20, Math.max(3, Math.ceil(props.runtime.map.getZoom()) + 2)))
+const progress = ref<MapExportProgress | null>(null)
 const status = ref('')
 const error = ref('')
 
@@ -53,9 +55,14 @@ function resetSelection() {
 
 async function exportMap(selectionOnly: boolean) {
   exporting.value = true
+  progress.value = null
   error.value = ''
   try {
-    await props.runtime.exportPng(selectionOnly)
+    await props.runtime.exportPng({
+      selectionOnly,
+      zoom: exportZoom.value,
+      onProgress: (value) => (progress.value = value),
+    })
     status.value = 'PNG downloaded'
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'PNG export failed.'
@@ -106,6 +113,8 @@ function clearData() {
 
     <section class="tool-section">
       <h2>PNG output</h2>
+      <label class="field-label" for="export-zoom">Detail zoom</label>
+      <input id="export-zoom" v-model.number="exportZoom" type="number" min="3" max="20" step="1" :disabled="exporting" />
       <div class="export-actions">
         <button class="button primary" type="button" :disabled="exporting" @click="exportMap(false)">
           <Image :size="16" /> Current view
@@ -113,6 +122,13 @@ function clearData() {
         <button class="button primary" type="button" :disabled="exporting || !hasSelection" @click="exportMap(true)">
           <Download :size="16" /> Selected region
         </button>
+      </div>
+      <div v-if="progress" class="export-progress">
+        <progress :value="progress.completed" :max="progress.total" />
+        <div>
+          <span>{{ progress.phase === 'capturing' ? 'Capturing' : 'Merging' }} {{ progress.completed }} / {{ progress.total }}</span>
+          <span>{{ progress.width }} x {{ progress.height }} px</span>
+        </div>
       </div>
       <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     </section>

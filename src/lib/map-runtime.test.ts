@@ -12,16 +12,31 @@ import { createMapRuntime } from './map-runtime'
 import { sampleGeoJson } from './geojson'
 
 let lastMap: FakeMap
-let lastMouseTool: FakeMouseTool
+let mouseTools: FakeMouseTool[]
 
 class FakeMap {
+  listeners = new Map<string, () => void>()
+  center: any = { lng: 120.1551, lat: 30.2741 }
+  zoom = 11
   add = vi.fn()
   remove = vi.fn()
   destroy = vi.fn()
   addControl = vi.fn()
   setCenter = vi.fn()
   setFitView = vi.fn()
-  lngLatToContainer = vi.fn((value: any) => value)
+  on = vi.fn((name: string, listener: () => void) => this.listeners.set(name, listener))
+  off = vi.fn((name: string) => this.listeners.delete(name))
+  getCenter = vi.fn(() => this.center)
+  getZoom = vi.fn(() => this.zoom)
+  getBounds = vi.fn(() => ({
+    getSouthWest: () => ({ lng: 120.15, lat: 30.25 }),
+    getNorthEast: () => ({ lng: 120.16, lat: 30.26 }),
+  }))
+  setZoomAndCenter = vi.fn((zoom: number, center: any) => {
+    this.zoom = zoom
+    this.center = center
+    this.listeners.get('complete')?.()
+  })
 
   constructor(public container: HTMLElement, public options: unknown) {
     lastMap = this
@@ -32,11 +47,14 @@ class FakeMouseTool {
   listeners = new Map<string, (event: any) => void>()
   close = vi.fn()
   rectangle = vi.fn()
+  marker = vi.fn()
+  polyline = vi.fn()
+  polygon = vi.fn()
   on = vi.fn((name: string, listener: (event: any) => void) => this.listeners.set(name, listener))
   off = vi.fn((name: string) => this.listeners.delete(name))
 
   constructor(_map: FakeMap) {
-    lastMouseTool = this
+    mouseTools.push(this)
   }
 }
 
@@ -48,10 +66,13 @@ class FakePlaceSearch {
 }
 
 class FakeRectangle {
+  hide = vi.fn()
+  show = vi.fn()
+
   getBounds() {
     return {
-      getSouthWest: () => ({ x: 10, y: 90 }),
-      getNorthEast: () => ({ x: 90, y: 10 }),
+      getSouthWest: () => ({ lng: 120.15, lat: 30.25 }),
+      getNorthEast: () => ({ lng: 120.16, lat: 30.26 }),
     }
   }
 }
@@ -71,22 +92,34 @@ const AMap = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mouseTools = []
   FakePlaceSearch.response = ['complete', { poiList: { pois: [] } }]
   mocks.load.mockResolvedValue(AMap)
   ;(globalThis as any).window = {}
+  ;(globalThis as any).requestAnimationFrame = (callback: () => void) => callback()
+  ;(globalThis as any).createImageBitmap = vi.fn(async () => ({ close: vi.fn() }))
+  vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:export'), revokeObjectURL: vi.fn() })
+  const context = {
+    drawImage: vi.fn(),
+    measureText: vi.fn(() => ({ width: 80 })),
+    fillRect: vi.fn(),
+    fillText: vi.fn(),
+    fillStyle: '',
+    font: '',
+  }
   ;(globalThis as any).document = {
-    createElement: vi.fn(() => ({
+    createElement: vi.fn((tag: string) => tag === 'canvas' ? ({
       click: vi.fn(),
-      toDataURL: vi.fn(() => 'data:image/png;base64,demo'),
-      getContext: vi.fn(() => ({ drawImage: vi.fn() })),
+      toBlob: vi.fn((callback: (blob: Blob) => void) => callback(new Blob(['png'], { type: 'image/png' }))),
+      getContext: vi.fn(() => context),
       width: 0,
       height: 0,
-    })),
+    }) : ({ click: vi.fn(), href: '', download: '' })),
   }
   mocks.html2canvas.mockResolvedValue({
-    width: 100,
-    height: 100,
-    toDataURL: vi.fn(() => 'data:image/png;base64,demo'),
+    width: 256,
+    height: 256,
+    toBlob: vi.fn((callback: (blob: Blob) => void) => callback(new Blob(['tile'], { type: 'image/png' }))),
   })
 })
 
@@ -144,16 +177,71 @@ describe('AMap runtime', () => {
   })
 
   it('draws, clears, and exports a selected region', async () => {
-    const runtime = await createMapRuntime({} as HTMLElement, { apiKey: 'key', securityCode: 'code' })
+    const container = {
+      clientWidth: 256,
+      clientHeight: 256,
+      classList: { add: vi.fn(), remove: vi.fn() },
+      querySelector: vi.fn(() => ({ textContent: 'Demo attribution' })),
+    } as unknown as HTMLElement
+    const runtime = await createMapRuntime(container, { apiKey: 'key', securityCode: 'code' })
     const drawing = runtime.startRectangle()
     const rectangle = new FakeRectangle()
-    lastMouseTool.listeners.get('draw')?.({ obj: rectangle })
+    mouseTools[0].listeners.get('draw')?.({ obj: rectangle })
     await expect(drawing).resolves.toBe(rectangle)
 
-    await runtime.exportPng(true)
+    const progress = vi.fn()
+    await runtime.exportPng({ selectionOnly: true, zoom: 16, onProgress: progress })
+    expect(mocks.html2canvas.mock.calls.length).toBeGreaterThan(1)
+    expect(progress).toHaveBeenCalledWith(expect.objectContaining({ phase: 'capturing', completed: 0 }))
+    expect(progress).toHaveBeenCalledWith(expect.objectContaining({ phase: 'merging' }))
+    expect(rectangle.hide).toHaveBeenCalled()
+    expect(rectangle.show).toHaveBeenCalled()
+    expect(lastMap.setZoomAndCenter).toHaveBeenCalled()
     runtime.clearRectangle()
-    await runtime.exportPng(false)
-    expect(mocks.html2canvas).toHaveBeenCalledTimes(2)
-    expect(lastMouseTool.close).toHaveBeenCalled()
+    await expect(runtime.exportPng({ selectionOnly: true, zoom: 16 })).rejects.toThrow('Select a region')
+    await runtime.exportPng({ selectionOnly: false, zoom: 16 })
+    expect(mouseTools[0].close).toHaveBeenCalled()
+  })
+
+  it('draws GeoJSON points, lines, and closed polygons', async () => {
+    const runtime = await createMapRuntime({} as HTMLElement, { apiKey: 'key', securityCode: 'code' })
+    const drawingTool = mouseTools[1]
+
+    const pointDrawing = runtime.startGeoJsonDrawing('Point')
+    drawingTool.listeners.get('draw')?.({ obj: { getPosition: () => ({ lng: 120, lat: 30 }) } })
+    await expect(pointDrawing).resolves.toEqual({
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Point', coordinates: [120, 30] },
+    })
+
+    const lineDrawing = runtime.startGeoJsonDrawing('LineString')
+    drawingTool.listeners.get('draw')?.({
+      obj: { getPath: () => [{ getLng: () => 120, getLat: () => 30 }, { lng: 121, lat: 31 }] },
+    })
+    await expect(lineDrawing).resolves.toMatchObject({
+      geometry: { type: 'LineString', coordinates: [[120, 30], [121, 31]] },
+    })
+
+    const polygonDrawing = runtime.startGeoJsonDrawing('Polygon')
+    drawingTool.listeners.get('draw')?.({
+      obj: { getPath: () => [{ lng: 120, lat: 30 }, { lng: 121, lat: 30 }, { lng: 121, lat: 31 }] },
+    })
+    const polygon = await polygonDrawing
+    expect(polygon.geometry.coordinates).toEqual([[[120, 30], [121, 30], [121, 31], [120, 30]]])
+
+    const closedPolygonDrawing = runtime.startGeoJsonDrawing('Polygon')
+    drawingTool.listeners.get('draw')?.({
+      obj: { getPath: () => [{ lng: 120, lat: 30 }, { lng: 121, lat: 31 }, { lng: 120, lat: 30 }] },
+    })
+    await expect(closedPolygonDrawing).resolves.toMatchObject({
+      geometry: { coordinates: [[[120, 30], [121, 31], [120, 30]]] },
+    })
+
+    runtime.clearDrawings()
+    expect(drawingTool.marker).toHaveBeenCalled()
+    expect(drawingTool.polyline).toHaveBeenCalled()
+    expect(drawingTool.polygon).toHaveBeenCalled()
+    expect(lastMap.remove).toHaveBeenCalledWith(expect.any(Array))
   })
 })

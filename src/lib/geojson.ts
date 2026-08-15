@@ -1,13 +1,24 @@
+import { convertCoordinateFromGcj02, type CoordinateSystem } from './coordinates'
+
+export type GeoJsonPosition = [number, number, ...number[]]
+export type GeoJsonCoordinates =
+  | GeoJsonPosition
+  | GeoJsonPosition[]
+  | GeoJsonPosition[][]
+  | GeoJsonPosition[][][]
+
+export interface GeoJsonFeature {
+  type: 'Feature'
+  properties?: Record<string, unknown>
+  geometry: {
+    type: string
+    coordinates: GeoJsonCoordinates
+  }
+}
+
 export interface GeoJsonFeatureCollection {
   type: 'FeatureCollection'
-  features: Array<{
-    type: 'Feature'
-    properties?: Record<string, unknown>
-    geometry: {
-      type: string
-      coordinates: unknown
-    }
-  }>
+  features: GeoJsonFeature[]
 }
 
 export function parseGeoJson(value: string): GeoJsonFeatureCollection {
@@ -19,6 +30,37 @@ export function parseGeoJson(value: string): GeoJsonFeatureCollection {
     throw new Error('Every item must be a valid GeoJSON Feature.')
   }
   return parsed as GeoJsonFeatureCollection
+}
+
+function isPosition(value: unknown[]): value is GeoJsonPosition {
+  return typeof value[0] === 'number' && typeof value[1] === 'number'
+}
+
+function convertCoordinates(coordinates: unknown, target: CoordinateSystem): GeoJsonCoordinates {
+  if (!Array.isArray(coordinates)) throw new Error('GeoJSON coordinates must be arrays.')
+  if (isPosition(coordinates)) {
+    const [longitude, latitude, ...rest] = coordinates
+    const converted = convertCoordinateFromGcj02([longitude, latitude], target)
+    return [...converted, ...rest]
+  }
+  return coordinates.map((child) => convertCoordinates(child, target)) as GeoJsonCoordinates
+}
+
+export function convertGeoJsonFromGcj02(
+  collection: GeoJsonFeatureCollection,
+  target: CoordinateSystem,
+): GeoJsonFeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: collection.features.map((feature) => ({
+      ...feature,
+      properties: feature.properties ? { ...feature.properties } : undefined,
+      geometry: {
+        ...feature.geometry,
+        coordinates: convertCoordinates(feature.geometry.coordinates, target),
+      },
+    })),
+  }
 }
 
 export const sampleGeoJson: GeoJsonFeatureCollection = {

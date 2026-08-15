@@ -1,6 +1,6 @@
-import { Image, MapPinned } from 'lucide-vue-next'
+import { Image, MapPinned, Shapes } from 'lucide-vue-next'
 
-export type FeatureId = 'explore' | 'gis-export'
+export type FeatureId = 'explore' | 'geojson-studio' | 'gis-export'
 
 export interface ToolboxFeature {
   id: FeatureId
@@ -15,6 +15,12 @@ export const features: ToolboxFeature[] = [
     label: 'Map explorer',
     description: 'Search places, inspect coordinates, and switch base layers.',
     icon: MapPinned,
+  },
+  {
+    id: 'geojson-studio',
+    label: 'GeoJSON studio',
+    description: 'Draw points, lines, and polygons, then copy converted GeoJSON.',
+    icon: Shapes,
   },
   {
     id: 'gis-export',

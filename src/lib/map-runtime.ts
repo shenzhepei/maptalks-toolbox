@@ -1,7 +1,9 @@
 import AMapLoader from '@amap/amap-jsapi-loader'
 import html2canvas from 'html2canvas'
 import type { AMapCredentials } from './credentials'
-import type { GeoJsonFeatureCollection } from './geojson'
+import type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonPosition } from './geojson'
+import { createExportPlan, type ExportBounds, type LngLatValue } from './map-export'
+import { createExportTileStore } from './tile-store'
 
 declare global {
   interface Window {
@@ -16,6 +18,22 @@ export interface PlaceResult {
   position: [number, number]
 }
 
+export type GeoJsonDrawingMode = 'Point' | 'LineString' | 'Polygon'
+
+export interface MapExportProgress {
+  phase: 'capturing' | 'merging'
+  completed: number
+  total: number
+  width: number
+  height: number
+}
+
+export interface MapExportOptions {
+  selectionOnly: boolean
+  zoom: number
+  onProgress?: (progress: MapExportProgress) => void
+}
+
 export interface MapRuntime {
   AMap: any
   map: any
@@ -25,9 +43,11 @@ export interface MapRuntime {
   mark: (position: [number, number]) => void
   renderGeoJson: (data: GeoJsonFeatureCollection) => number
   clearGeoJson: () => void
+  startGeoJsonDrawing: (mode: GeoJsonDrawingMode) => Promise<GeoJsonFeature>
+  clearDrawings: () => void
   startRectangle: () => Promise<any>
   clearRectangle: () => void
-  exportPng: (selectionOnly: boolean) => Promise<void>
+  exportPng: (options: MapExportOptions) => Promise<void>
 }
 
 export async function createMapRuntime(container: HTMLElement, credentials: AMapCredentials): Promise<MapRuntime> {
@@ -50,6 +70,8 @@ export async function createMapRuntime(container: HTMLElement, credentials: AMap
   let geoJsonLayer: any
   let rectangle: any
   const mouseTool = new AMap.MouseTool(map)
+  const drawingMouseTool = new AMap.MouseTool(map)
+  const drawnOverlays: any[] = []
 
   const mark = (position: [number, number]) => {
     if (marker) map.remove(marker)
@@ -67,6 +89,77 @@ export async function createMapRuntime(container: HTMLElement, credentials: AMap
     mouseTool.close(true)
     if (rectangle) map.remove(rectangle)
     rectangle = undefined
+  }
+
+  const toPosition = (value: any): GeoJsonPosition => [
+    Number(value.lng ?? value.getLng()),
+    Number(value.lat ?? value.getLat()),
+  ]
+
+  const closeRing = (positions: GeoJsonPosition[]) => {
+    if (!positions.length) return positions
+    const first = positions[0]
+    const last = positions.at(-1)!
+    return first[0] === last[0] && first[1] === last[1] ? positions : [...positions, [...first]]
+  }
+
+  const featureFromOverlay = (mode: GeoJsonDrawingMode, overlay: any): GeoJsonFeature => {
+    if (mode === 'Point') {
+      return {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: mode, coordinates: toPosition(overlay.getPosition()) },
+      }
+    }
+    const path = overlay.getPath().map(toPosition)
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: mode, coordinates: mode === 'Polygon' ? [closeRing(path)] : path },
+    }
+  }
+
+  const clearDrawings = () => {
+    drawingMouseTool.close(true)
+    if (drawnOverlays.length) map.remove([...drawnOverlays])
+    drawnOverlays.length = 0
+  }
+
+  const toLngLatValue = (value: any): LngLatValue => ({
+    lng: Number(value.lng ?? value.getLng()),
+    lat: Number(value.lat ?? value.getLat()),
+  })
+
+  const getExportBounds = (source: any): ExportBounds => ({
+    southWest: toLngLatValue(source.getSouthWest()),
+    northEast: toLngLatValue(source.getNorthEast()),
+  })
+
+  const moveMapForExport = (center: LngLatValue, zoom: number) =>
+    new Promise<void>((resolve) => {
+      let finished = false
+      const finish = () => {
+        if (finished) return
+        finished = true
+        clearTimeout(timeout)
+        map.off('complete', finish)
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }
+      const timeout = setTimeout(finish, 4000)
+      map.on('complete', finish)
+      map.setZoomAndCenter(zoom, [center.lng, center.lat], true)
+    })
+
+  const canvasToBlob = (canvas: HTMLCanvasElement) =>
+    new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('The browser could not encode the PNG.'))), 'image/png')
+    })
+
+  const blobToImage = async (blob: Blob): Promise<ImageBitmap> => {
+    if (typeof createImageBitmap !== 'function') {
+      throw new Error('This browser cannot decode captured map tiles.')
+    }
+    return createImageBitmap(blob)
   }
 
   return {
@@ -123,6 +216,32 @@ export async function createMapRuntime(container: HTMLElement, credentials: AMap
       return data.features.length
     },
     clearGeoJson,
+    startGeoJsonDrawing(mode) {
+      drawingMouseTool.close(false)
+      return new Promise((resolve) => {
+        const onDraw = (event: any) => {
+          const overlay = event.obj
+          drawnOverlays.push(overlay)
+          drawingMouseTool.close(false)
+          drawingMouseTool.off('draw', onDraw)
+          resolve(featureFromOverlay(mode, overlay))
+        }
+        drawingMouseTool.on('draw', onDraw)
+        if (mode === 'Point') {
+          drawingMouseTool.marker({ anchor: 'bottom-center' })
+        } else if (mode === 'LineString') {
+          drawingMouseTool.polyline({ strokeColor: '#d84a2f', strokeWeight: 5, strokeOpacity: 0.9 })
+        } else {
+          drawingMouseTool.polygon({
+            strokeColor: '#16856f',
+            strokeWeight: 3,
+            fillColor: '#46b99e',
+            fillOpacity: 0.22,
+          })
+        }
+      })
+    },
+    clearDrawings,
     startRectangle() {
       clearRectangle()
       return new Promise((resolve) => {
@@ -142,28 +261,83 @@ export async function createMapRuntime(container: HTMLElement, credentials: AMap
       })
     },
     clearRectangle,
-    async exportPng(selectionOnly) {
-      const canvas = await html2canvas(container, { useCORS: true, logging: false, backgroundColor: '#eef1ef' })
-      let output = canvas
-      if (selectionOnly && rectangle) {
-        const bounds = rectangle.getBounds()
-        const southWest = map.lngLatToContainer(bounds.getSouthWest())
-        const northEast = map.lngLatToContainer(bounds.getNorthEast())
-        const x = Math.max(0, Math.min(southWest.x, northEast.x))
-        const y = Math.max(0, Math.min(southWest.y, northEast.y))
-        const width = Math.min(canvas.width - x, Math.abs(northEast.x - southWest.x))
-        const height = Math.min(canvas.height - y, Math.abs(southWest.y - northEast.y))
-        if (width > 1 && height > 1) {
-          output = document.createElement('canvas')
-          output.width = width
-          output.height = height
-          output.getContext('2d')?.drawImage(canvas, x, y, width, height, 0, 0, width, height)
+    async exportPng(options) {
+      if (options.selectionOnly && !rectangle) throw new Error('Select a region before exporting it.')
+      const bounds = getExportBounds(options.selectionOnly ? rectangle.getBounds() : map.getBounds())
+      const plan = createExportPlan(bounds, options.zoom, container.clientWidth, container.clientHeight)
+      const originalCenter = map.getCenter()
+      const originalZoom = map.getZoom()
+      const output = document.createElement('canvas')
+      output.width = plan.width
+      output.height = plan.height
+      const context = output.getContext('2d')
+      if (!context) throw new Error('The browser could not create the output canvas.')
+      const tileStore = await createExportTileStore()
+
+      options.onProgress?.({ phase: 'capturing', completed: 0, total: plan.tiles.length, width: plan.width, height: plan.height })
+      container.classList.add('map-exporting')
+      rectangle?.hide?.()
+
+      try {
+        for (let index = 0; index < plan.tiles.length; index += 1) {
+          const tile = plan.tiles[index]
+          await moveMapForExport(tile.center, options.zoom)
+          const tileCanvas = await html2canvas(container, {
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#eef1ef',
+            scale: 1,
+          })
+          await tileStore.put(index, await canvasToBlob(tileCanvas))
+          options.onProgress?.({
+            phase: 'capturing',
+            completed: index + 1,
+            total: plan.tiles.length,
+            width: plan.width,
+            height: plan.height,
+          })
+        }
+
+        options.onProgress?.({ phase: 'merging', completed: 0, total: plan.tiles.length, width: plan.width, height: plan.height })
+        for (let index = 0; index < plan.tiles.length; index += 1) {
+          const tile = plan.tiles[index]
+          const image = await blobToImage(await tileStore.get(index))
+          context.drawImage(image, 0, 0, tile.width, tile.height, tile.x, tile.y, tile.width, tile.height)
+          image.close()
+          options.onProgress?.({
+            phase: 'merging',
+            completed: index + 1,
+            total: plan.tiles.length,
+            width: plan.width,
+            height: plan.height,
+          })
+        }
+
+        const copyright = container.querySelector('.amap-copyright')?.textContent?.trim()
+        const attribution = ['AMap', copyright].filter(Boolean).join(' | ')
+        context.font = '12px sans-serif'
+        const attributionWidth = Math.ceil(context.measureText(attribution).width) + 16
+        context.fillStyle = 'rgba(255, 255, 255, 0.86)'
+        context.fillRect(8, plan.height - 28, attributionWidth, 20)
+        context.fillStyle = '#34443f'
+        context.fillText(attribution, 16, plan.height - 14)
+
+        const blob = await canvasToBlob(output)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.download = `amap-${options.zoom}z-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
+        link.href = url
+        link.click()
+        URL.revokeObjectURL(url)
+      } finally {
+        try {
+          await tileStore.dispose()
+        } finally {
+          container.classList.remove('map-exporting')
+          rectangle?.show?.()
+          map.setZoomAndCenter(originalZoom, originalCenter, true)
         }
       }
-      const link = document.createElement('a')
-      link.download = `amap-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
-      link.href = output.toDataURL('image/png')
-      link.click()
     },
   }
 }

@@ -22,17 +22,19 @@ An extensible browser toolbox for AMap exploration, coordinate conversion, GeoJS
 ## Features
 
 - Search for places and inspect coordinates by clicking the map.
-- Convert GCJ-02 coordinates to WGS84 and BD-09.
+- Convert picked GCJ-02 coordinates to WGS84, CGCS2000, and BD-09.
 - Switch between the standard and satellite base layers.
+- Draw points, lines, and polygons and copy the generated GeoJSON.
+- Convert drawn GeoJSON between GCJ-02, WGS84, CGCS2000, and BD-09 output.
 - Import GeoJSON `FeatureCollection` files containing points, lines, or polygons.
-- Draw a rectangle and export the current view or selected region as PNG.
+- Export the current view or a selected region as one high-resolution PNG assembled from zoomed map tiles.
 - Add future AMap utilities through a typed feature registry.
 
 ## AMap credentials
 
 The repository and deployment contain no AMap key or security code. Each visitor supplies a **Web JS API key** and its **security code** from the [AMap console](https://console.amap.com/dev/key/app).
 
-Credentials are stored only in the current tab's `sessionStorage`. They are not included in source control, build output, analytics, or application logs. The browser still sends them directly to AMap as required by the AMap JavaScript API.
+Credentials are stored in the current browser's `localStorage` until the visitor uses **Clear**. They are not included in source control, build output, analytics, or application logs. The browser still sends them directly to AMap as required by the AMap JavaScript API. Clear saved credentials before leaving a shared device.
 
 For the hosted app, add `https://shenzhepei.github.io` to the allowed domains for the key. For local development, allow `localhost` according to the [AMap preparation guide](https://lbs.amap.com/api/javascript-api-v2/guide/abc/prepare).
 
@@ -62,14 +64,22 @@ Coverage measures the production modules under `src/lib` and produces `coverage/
 1. Add a stable ID and metadata entry to `src/lib/features.ts`.
 2. Implement the feature panel under `src/components` using the shared `MapRuntime` interface.
 3. Mount the panel in `src/App.vue` and add focused tests for reusable logic in `src/lib`.
-4. Keep AMap credentials in the existing session-only credential flow.
+4. Keep AMap credentials in the existing browser-local credential flow.
 
 This structure keeps SDK loading, credentials, and the map instance shared while feature panels remain independently maintainable.
+
+## Coordinate systems
+
+Geometry drawn on AMap is treated as GCJ-02. WGS84 and BD-09 output uses `gcoord`. Geographic CGCS2000 (EPSG:4490) output uses the de-offset WGS84 longitude and latitude at the application's six-decimal-place precision; it is suitable for ordinary web map exchange, not survey-grade datum transformation.
+
+RFC 7946 standard GeoJSON uses WGS84. GCJ-02, CGCS2000, and BD-09 selections intentionally preserve the GeoJSON structure while changing coordinate values, so consumers must know the selected coordinate system.
 
 ## GeoJSON and export notes
 
 - GeoJSON files are parsed locally and are not uploaded by this application.
 - PNG export depends on browser canvas and AMap tile CORS behavior. AMap key domain restrictions must permit the current site.
+- High-resolution export moves the map through every required tile at the selected detail zoom, waits for AMap to load it, captures it with `html2canvas`, and stores the PNG Blob in a temporary IndexedDB database. It then reads and merges one tile at a time, deletes the temporary database, restores the original view, and downloads one PNG.
+- Browser safety limits are 16,384 pixels per side, 64 million output pixels, and 256 captured tiles. Reduce the detail zoom or selected area when a limit is exceeded.
 - Imported data should use coordinates compatible with the AMap layer being displayed, normally GCJ-02 within mainland China.
 
 ## License

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearCredentials, readCredentials, saveCredentials } from './credentials'
 
 class MemoryStorage implements Storage {
@@ -12,6 +12,17 @@ class MemoryStorage implements Storage {
 }
 
 describe('credential storage', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('uses browser localStorage by default', () => {
+    const storage = new MemoryStorage()
+    vi.stubGlobal('window', { localStorage: storage })
+    saveCredentials({ apiKey: 'persistent-key', securityCode: 'persistent-code' })
+    expect(readCredentials()).toEqual({ apiKey: 'persistent-key', securityCode: 'persistent-code' })
+    clearCredentials()
+    expect(storage.length).toBe(0)
+  })
+
   it('normalizes, stores, and reads both credentials', () => {
     const storage = new MemoryStorage()
     expect(saveCredentials({ apiKey: ' key ', securityCode: ' code ' }, storage)).toEqual({

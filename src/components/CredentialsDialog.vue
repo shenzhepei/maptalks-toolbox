@@ -35,7 +35,7 @@ function submit() {
         <span class="dialog-icon"><KeyRound :size="19" /></span>
         <div>
           <h2 id="credentials-title">AMap credentials</h2>
-          <p>Kept in this browser tab only</p>
+          <p>Saved in this browser until cleared</p>
         </div>
         <button v-if="canClose" class="icon-button" type="button" title="Close" @click="emit('close')">
           <X :size="18" />
